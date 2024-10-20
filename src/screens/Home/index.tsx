@@ -1,27 +1,63 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import { DragDropContext, Draggable, Droppable, type DraggableProvided } from '@hello-pangea/dnd'
+import React, { useRef, type FormEvent } from 'react'
+
+import { TICKET_STATUSES } from '@/config/constant'
+import { useTicketContext } from '@/states/useTicketContext'
+import type { TicketType } from '@/types/state'
+import { LuX } from 'react-icons/lu'
 
 const HomeScreen = () => {
+  const { getTicketsPerStatus, onDragEnd, createTicket, deleteTicket } = useTicketContext()
+  const labelInputRef = useRef<HTMLInputElement>(null)
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const value = labelInputRef?.current?.value
+    if (!value) return
+    createTicket(value)
+    labelInputRef.current.value = ''
+  }
+
   return (
     <div className='h-full flex flex-col gap-4 items-center justify-center px-4'>
-      <div className="text-3xl md:text-7xl font-bold dark:text-white text-center">
-        Home Page
-      </div>
-      <div className="font-extralight text-base md:text-4xl dark:text-neutral-200 py-4">
-        A Clean static line
-      </div>
-
-      <Link to='/' className="scale-125 bg-slate-800 no-underline group cursor-pointer relative shadow-2xl shadow-zinc-900 rounded-full p-px text-xs font-semibold leading-6  text-white inline-block">
-        <span className="absolute inset-0 overflow-hidden rounded-full">
-          <span className="absolute inset-0 rounded-full bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(56,189,248,0.6)_0%,rgba(56,189,248,0)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-        </span>
-        <div className="relative flex space-x-2 items-center z-10 rounded-full bg-zinc-950 py-0.5 px-4 ring-1 ring-white/10 ">
-          <span className='flex gap-2'>
-            Continue
-          </span>
+      <form onSubmit={handleSubmit}>
+        <input ref={labelInputRef} name='label' className='bg-slate-900 text-white' />
+      </form>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex overflow-x-auto gap-6 pb-4 h-[calc(100vh-150px)] mx-auto">
+          {TICKET_STATUSES.map((status: TicketType['status']) => (
+            <Droppable droppableId={status} key={status}>
+              {(provided) => (
+                <div
+                  className='flex flex-col pt-4 flex-shrink-0 w-80 border rounded-md border-slate-700'
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                >
+                  <h3 className='text-center text-lg font-bold uppercase'>{status}</h3>
+                  {/* A column with tickets */}
+                  <div className='overflow-y-auto h-full'>
+                    {getTicketsPerStatus(status).map((item, idx) => (
+                      <Draggable draggableId={item.id} index={idx} key={item.id}>
+                        {(provided: DraggableProvided) => (
+                          <div
+                            className='cursor-pointer flex justify-between items-center px-3 my-2 border border-cyan-500 rounded mx-3'
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                          >
+                            <span>{item.label}</span>
+                            <LuX color='red' className='cursor-pointer' onClick={() => deleteTicket(item.id)} />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Droppable>
+          ))}
         </div>
-        <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-emerald-400/0 via-emerald-400/90 to-emerald-400/0 transition-opacity duration-500 group-hover:opacity-40" />
-      </Link>
+      </DragDropContext>
     </div>
   )
 }
